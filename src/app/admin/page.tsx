@@ -5,58 +5,76 @@ import { createClient } from "@/lib/supabase/client"
 export default function AdminPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [session, setSession] = useState(null)
-  const [title, setTitle] = useState("")
-  const [slug, setSlug] = useState("")
-  const [body, setBody] = useState("")
-  const [published, setPublished] = useState(false)
-  const [msg, setMsg] = useState("")
-  const sb = createClient()
+  const [session, setSession] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const supabase = createClient()
 
   useEffect(() => {
-    sb.auth.getSession().then(({ data }) => setSession(data.session))
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
-  async function login(e) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    const { error } = await sb.auth.signInWithPassword({ email, password })
-    if (error) setMsg(error.message)
-    else sb.auth.getSession().then(({ data }) => setSession(data.session))
+    setError("")
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setError(error.message)
   }
 
-  async function save(e) {
-    e.preventDefault()
-    const { error } = await sb.from("posts").insert({ title, slug, content: body, published, views: 0 })
-    if (error) setMsg(error.message)
-    else { setMsg("Post saved!"); setTitle(""); setSlug(""); setBody("") }
+  async function handleLogout() {
+    await supabase.auth.signOut()
   }
 
-  if (!session) return (
-    <div className="max-w-sm mx-auto mt-20 p-6">
-      <h1 className="text-2xl font-bold mb-4">Admin Login</h1>
-      <form onSubmit={login} className="space-y-3">
-        <input className="w-full border p-2 rounded" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input type="password" className="w-full border p-2 rounded" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-        <button className="w-full bg-black text-white p-2 rounded">Login</button>
-      </form>
-      {msg && <p className="text-red-500 mt-2">{msg}</p>}
-    </div>
-  )
+  if (loading) return <div className="p-8">Loading...</div>
+
+  if (!session) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-50">
+        <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow w-full max-w-sm space-y-4">
+          <h1 className="text-2xl font-bold">Admin Login</h1>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+            required
+          />
+          <button type="submit" className="w-full bg-black text-white py-2 rounded hover:bg-gray-800">
+            Sign In
+          </button>
+        </form>
+      </main>
+    )
+  }
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6">
-      <h1 className="text-2xl font-bold mb-4">New Post</h1>
-      <form onSubmit={save} className="space-y-3">
-        <input className="w-full border p-2 rounded" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
-        <input className="w-full border p-2 rounded" placeholder="slug-here" value={slug} onChange={e => setSlug(e.target.value)} />
-        <textarea className="w-full border p-2 rounded h-48" value={body} onChange={e => setBody(e.target.value)} />
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} />
-          Published
-        </label>
-        <button className="bg-black text-white px-4 py-2 rounded">Save Post</button>
-      </form>
-      {msg && <p className="text-green-600 mt-2">{msg}</p>}
-    </div>
+    <main className="min-h-screen p-8 bg-gray-50">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <button onClick={handleLogout} className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800">
+            Sign Out
+          </button>
+        </div>
+        <p className="text-gray-600">Logged in as: {session.user.email}</p>
+      </div>
+    </main>
   )
 }

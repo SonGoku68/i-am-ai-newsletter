@@ -1,6 +1,5 @@
 "use client"
 import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 
 export default function SubscribeForm() {
   const [email, setEmail] = useState("")
@@ -10,40 +9,44 @@ export default function SubscribeForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setStatus("loading")
-    const supabase = createClient()
-    const { error } = await supabase.from("subscribers").insert({ email })
-    if (error) {
-      if (error.code === "23505") {
-        setMessage("You're already subscribed!")
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      if (res.ok) {
         setStatus("success")
+        setMessage(data.message || "You're subscribed!")
+        setEmail("")
       } else {
-        setMessage("Something went wrong. Please try again.")
         setStatus("error")
+        setMessage(data.error || "Something went wrong.")
       }
-    } else {
-      setMessage("You're in! Check your inbox every week.")
-      setStatus("success")
-      setEmail("")
+    } catch {
+      setStatus("error")
+      setMessage("Network error. Please try again.")
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
       <input
         type="email"
-        placeholder="your@email.com"
         value={email}
         onChange={e => setEmail(e.target.value)}
+        placeholder="your@email.com"
         required
         disabled={status === "loading" || status === "success"}
-        className="flex-1 border border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="flex-1 px-4 py-3 rounded text-black"
       />
       <button
         type="submit"
         disabled={status === "loading" || status === "success"}
-        className="bg-blue-600 text-white px-5 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
+        className="px-6 py-3 bg-white text-black font-semibold rounded hover:bg-gray-100 disabled:opacity-50"
       >
-        {status === "loading" ? "Subscribing..." : "Subscribe"}
+        {status === "loading" ? "Subscribing..." : status === "success" ? "Subscribed!" : "Subscribe"}
       </button>
       {message && (
         <p className={}>
