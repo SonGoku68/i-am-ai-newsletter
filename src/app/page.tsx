@@ -1,24 +1,51 @@
-import Link from "next/link"
-import SubscribeForm from "@/components/SubscribeForm"
+import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import SubscribeForm from "@/components/SubscribeForm";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("title,slug,content,created_at")
+    .eq("published", true)
+    .order("created_at", { ascending: false })
+    .limit(6);
+
   return (
-    <main className="max-w-3xl mx-auto px-4 py-12">
-      <header className="mb-10 text-center">
-        <h1 className="text-4xl font-bold mb-2">I Am AI Newsletter</h1>
-        <p className="text-gray-500 text-lg">Daily AI news, research &amp; insights — curated for curious minds.</p>
-      </header>
-
-      <section className="mb-12 bg-gray-50 border border-gray-200 rounded-xl p-6">
-        <h2 className="text-xl font-semibold mb-1">Get the Weekly Top 5</h2>
-        <p className="text-gray-500 mb-4 text-sm">Every week we send you the 5 most-read AI stories. No spam.</p>
+    <main className="max-w-4xl mx-auto px-4 py-12 space-y-16">
+      <section className="text-center space-y-6">
+        <h1 className="text-6xl font-bold tracking-tight">I Am AI</h1>
+        <p className="text-xl text-gray-500 max-w-xl mx-auto">
+          Daily AI insights — research, analysis, and the stories shaping the future.
+        </p>
         <SubscribeForm />
       </section>
 
       <section>
         <h2 className="text-2xl font-semibold mb-6">Latest Posts</h2>
-        <p className="text-gray-400 italic">Posts loading soon...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {posts?.map((p) => (
+            <Link
+              key={p.slug}
+              href={"/blog/" + p.slug}
+              className="border rounded-xl p-5 hover:shadow-lg transition group"
+            >
+              <h3 className="font-semibold group-hover:text-blue-600 transition">{p.title}</h3>
+              <p className="text-gray-400 text-xs mt-1">
+                {new Date(p.created_at).toLocaleDateString("en-US", {
+                  year: "numeric", month: "long", day: "numeric",
+                })}
+              </p>
+              <p className="text-gray-600 text-sm mt-2 leading-relaxed">
+                {p.content.slice(0, 120)}...
+              </p>
+            </Link>
+          ))}
+          {(!posts || posts.length === 0) && (
+            <p className="text-gray-400 col-span-2">No posts yet — check back soon.</p>
+          )}
+        </div>
       </section>
     </main>
-  )
+  );
 }
