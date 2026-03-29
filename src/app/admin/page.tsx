@@ -1,62 +1,112 @@
 "use client"
-
-import { useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function AdminPage() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [session, setSession] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [loginError, setLoginError] = useState("")
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
   const [summary, setSummary] = useState("")
   const [content, setContent] = useState("")
   const [tags, setTags] = useState("")
-  const [status, setStatus] = useState("draft")
+  const [postStatus, setPostStatus] = useState("draft")
   const [message, setMessage] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const supabase = createClient()
 
-  function toSlug(str: string) {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
+    return () => subscription.unsubscribe()
+  }, [])
+
+  function toSlug(str) {
     return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
   }
 
-  function handleTitleChange(val: string) {
-    setTitle(val)
-    setSlug(toSlug(val))
+  async function handleLogin(e) {
+    e.preventDefault()
+    setLoginError("")
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setLoginError(error.message)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    setLoading(true)
+    setSaving(true)
     setMessage("")
-    const tagsArray = tags.split(",").map((t) => t.trim()).filter(Boolean)
-    const { error } = await supabase.from("posts").insert([
-      { title, slug, summary, content, tags: tagsArray, status }
-    ])
+    const tagsArray = tags.split(",").map(t => t.trim()).filter(Boolean)
+    const { error } = await supabase.from("posts").insert([{
+      title, slug, summary, content,
+      tags: tagsArray, status: postStatus,
+      published_at: postStatus === "published" ? new Date().toISOString() : null,
+    }])
     if (error) {
       setMessage("Error: " + error.message)
     } else {
-      setMessage("Post saved successfully!")
-      setTitle(""); setSlug(""); setSummary(""); setContent(""); setTags(""); setStatus("draft")
+      setMessage("Post saved!")
+      setTitle(""); setSlug(""); setSummary(""); setContent(""); setTags(""); setPostStatus("draft")
     }
-    setLoading(false)
+    setSaving(false)
   }
 
-  return (
-    <main className="max-w-2xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">Admin — New Post</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <input className="border p-2 rounded" placeholder="Title" value={title} onChange={(e) => handleTitleChange(e.target.value)} required />
-        <input className="border p-2 rounded" placeholder="Slug" value={slug} onChange={(e) => setSlug(e.target.value)} required />
-        <textarea className="border p-2 rounded" placeholder="Summary" value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} required />
-        <textarea className="border p-2 rounded" placeholder="Content (markdown)" value={content} onChange={(e) => setContent(e.target.value)} rows={10} required />
-        <input className="border p-2 rounded" placeholder="Tags (comma separated)" value={tags} onChange={(e) => setTags(e.target.value)} />
-        <select className="border p-2 rounded" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-        </select>
-        <button className="bg-black text-white py-2 rounded" type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Save Post"}
-        </button>
-        {message && <p className="text-sm mt-2">{message}</p>}
+  if (loading) return <div className="p-8 text-gray-500">Loading...</div>
+
+  if (!session) return (
+    <main className="min-h-screen flex items-center justify-center bg-gray-50">
+      <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow w-full max-w-sm space-y-4">
+        <h1 className="text-2xl font-bold">Admin Login</h1>
+        {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
+        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border rounded px-3 py-2" required />
+        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border rounded px-3 py-2" required />
+        <button type="submit" className="w-full bg-black text-white py-2 rounded">Sign In</button>
       </form>
+    </main>
+  )
+
+  return (
+    <main className="min-h-screen bg-gray-950 text-white p-8">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-purple-400">New Post</h1>
+          <button onClick={() => supabase.auth.signOut()} className="text-sm text-gray-400 hover:text-white">Sign out</button>
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div><label className="block text-sm text-gray-400 mb-1">Title</label>
+            <input className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
+              value={title} onChange={e => { setTitle(e.target.value); setSlug(toSlug(e.target.value)) }} required /></div>
+          <div><label className="block text-sm text-gray-400 mb-1">Slug</label>
+            <input className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-400"
+              value={slug} onChange={e => setSlug(e.target.value)} required /></div>
+          <div><label className="block text-sm text-gray-400 mb-1">Summary</label>
+            <textarea className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white h-20"
+              value={summary} onChange={e => setSummary(e.target.value)} required /></div>
+          <div><label className="block text-sm text-gray-400 mb-1">Content (Markdown)</label>
+            <textarea className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white h-48 font-mono text-sm"
+              value={content} onChange={e => setContent(e.target.value)} required /></div>
+          <div><label className="block text-sm text-gray-400 mb-1">Tags (comma separated)</label>
+            <input className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
+              value={tags} onChange={e => setTags(e.target.value)} /></div>
+          <div><label className="block text-sm text-gray-400 mb-1">Status</label>
+            <select className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
+              value={postStatus} onChange={e => setPostStatus(e.target.value)}>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select></div>
+          <button type="submit" disabled={saving}
+            className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-2 px-6 rounded">
+            {saving ? "Saving..." : "Save Post"}
+          </button>
+          {message && <p className={message.startsWith("Error") ? "text-red-400" : "text-green-400"}>{message}</p>}
+        </form>
+      </div>
     </main>
   )
 }
