@@ -1,19 +1,21 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
-  const { email } = await req.json()
-  if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 })
-
-  const supabase = await createClient()
-  const { error } = await supabase.from("subscribers").insert({ email })
-
-  if (error) {
-    if (error.code === "23505") {
-      return NextResponse.json({ message: "Already subscribed" }, { status: 200 })
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+export async function POST(req: Request) {
+  const { email } = await req.json();
+  if (!email || !email.includes('@')) {
+    return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
   }
 
-  return NextResponse.json({ message: "Subscribed" }, { status: 200 })
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('subscribers')
+    .upsert({ email, subscribed_at: new Date().toISOString() }, { onConflict: 'email' });
+
+  if (error) {
+    console.error('Supabase error:', error);
+    return NextResponse.json({ error: 'Could not subscribe. Try again.' }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

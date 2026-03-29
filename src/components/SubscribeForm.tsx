@@ -1,54 +1,58 @@
-"use client"
-import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+"use client";
+import { useState } from 'react';
 
 export default function SubscribeForm() {
-  const [email, setEmail] = useState("")
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
-  const supabase = createClient()
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setStatus("loading")
-    const { error } = await supabase.from("subscribers").insert({ email })
-    if (error) {
-      setStatus("error")
-    } else {
-      setStatus("success")
-      setEmail("")
+    e.preventDefault();
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus('success');
+        setMessage('You're subscribed! Check your inbox.');
+        setEmail('');
+      } else {
+        setStatus('error');
+        setMessage(data.error || 'Something went wrong.');
+      }
+    } catch {
+      setStatus('error');
+      setMessage('Network error. Please try again.');
     }
   }
 
-  if (status === "success") {
-    return (
-      <div className="text-center py-4">
-        <p className="text-green-600 font-semibold text-lg">You are in! Check your inbox soon.</p>
-      </div>
-    )
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col items-center gap-3 w-full max-w-md mx-auto">
-      <div className="flex gap-2 w-full">
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="your@email.com"
-          required
-          className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50 whitespace-nowrap"
-        >
-          {status === "loading" ? "Subscribing..." : "Subscribe Free"}
-        </button>
-      </div>
-      {status === "error" && (
-        <p className="text-red-500 text-sm">Something went wrong. Please try again.</p>
+    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+      <input
+        type="email"
+        required
+        placeholder="your@email.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="border rounded px-4 py-2 flex-1 text-black"
+        disabled={status === 'loading'}
+      />
+      <button
+        type="submit"
+        disabled={status === 'loading'}
+        className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
+      >
+        {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
+      </button>
+      {message && (
+        <p className={}>
+          {message}
+        </p>
       )}
     </form>
-  )
+  );
 }
