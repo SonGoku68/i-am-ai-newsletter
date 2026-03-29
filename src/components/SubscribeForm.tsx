@@ -1,52 +1,49 @@
-"use client";
-import { useState } from 'react';
+"use client"
+import { useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function SubscribeForm() {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState("")
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [message, setMessage] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setStatus('loading');
-    try {
-      const res = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setStatus('success');
-        setMessage('You're subscribed! Check your inbox.');
-        setEmail('');
+    e.preventDefault()
+    setStatus("loading")
+    const supabase = createClient()
+    const { error } = await supabase.from("subscribers").insert({ email })
+    if (error) {
+      if (error.code === "23505") {
+        setMessage("You're already subscribed!")
+        setStatus("success")
       } else {
-        setStatus('error');
-        setMessage(data.error || 'Something went wrong.');
+        setMessage("Something went wrong. Please try again.")
+        setStatus("error")
       }
-    } catch {
-      setStatus('error');
-      setMessage('Network error. Please try again.');
+    } else {
+      setMessage("You're in! Check your inbox every week.")
+      setStatus("success")
+      setEmail("")
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
       <input
         type="email"
-        required
         placeholder="your@email.com"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="border rounded px-4 py-2 flex-1 text-black"
-        disabled={status === 'loading'}
+        onChange={e => setEmail(e.target.value)}
+        required
+        disabled={status === "loading" || status === "success"}
+        className="flex-1 border border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
       <button
         type="submit"
-        disabled={status === 'loading'}
-        className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
+        disabled={status === "loading" || status === "success"}
+        className="bg-blue-600 text-white px-5 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
       >
-        {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
+        {status === "loading" ? "Subscribing..." : "Subscribe"}
       </button>
       {message && (
         <p className={}>
@@ -54,5 +51,5 @@ export default function SubscribeForm() {
         </p>
       )}
     </form>
-  );
+  )
 }

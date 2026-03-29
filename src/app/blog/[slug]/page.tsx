@@ -1,36 +1,37 @@
-import { createClient } from '@/lib/supabase';
-import { notFound } from 'next/navigation';
+import { createClient } from "@/lib/supabase/server"
+import { notFound } from "next/navigation"
 
-export const revalidate = 60;
+export const revalidate = 60
 
-interface Props {
-  params: { slug: string };
-}
-
-export default async function BlogPostPage({ params }: Props) {
-  const supabase = createClient();
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const supabase = await createClient()
   const { data: post } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('slug', params.slug)
-    .eq('published', true)
-    .single();
+    .from("posts")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .single()
 
-  if (!post) notFound();
+  if (!post) notFound()
+
+  // Increment view count
+  await supabase.rpc("increment_views", { post_id: post.id }).catch(() => {})
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
-      <p className="text-gray-400 text-sm mb-8">
-        {post.published_at ? new Date(post.published_at).toLocaleDateString() : ''}
-      </p>
-      {post.summary && (
-        <p className="text-lg text-gray-600 mb-8 italic">{post.summary}</p>
+      {post.cover_image && (
+        <img src={post.cover_image} alt={post.title} className="w-full h-64 object-cover rounded-xl mb-8" />
       )}
-      <article
-        className="prose prose-invert max-w-none"
-        dangerouslySetInnerHTML={{ __html: post.body_html ?? post.body ?? '' }}
-      />
+      <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
+      {post.summary && <p className="text-gray-500 text-lg mb-6">{post.summary}</p>}
+      <p className="text-xs text-gray-400 mb-8">{new Date(post.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+      <article className="prose prose-gray max-w-none">
+        {post.content.split("
+").map((line: string, i: number) => (
+          <p key={i}>{line}</p>
+        ))}
+      </article>
     </main>
-  );
+  )
 }
