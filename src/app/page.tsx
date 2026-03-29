@@ -24,7 +24,7 @@ export default async function HomePage() {
           <ul className="space-y-6">
             {posts.map((post) => (
               <li key={post.id} className="border-b pb-6">
-                <Link href={} className="text-2xl font-medium hover:underline">
+                <Link href={`/blog/${post.slug}`} className="text-2xl font-medium hover:underline">
                   {post.title}
                 </Link>
                 <p className="text-gray-400 text-sm mt-1">
