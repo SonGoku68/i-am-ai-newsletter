@@ -1,72 +1,62 @@
-"use client";
-import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-
-type Post = {
-  id: string;
-  title: string;
-  slug: string;
-  published: boolean;
-  created_at: string;
-};
+"use client"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function AdminPage() {
-  const supabase = createClientComponentClient();
-  const [session, setSession] = useState<any>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [session, setSession] = useState(null)
+  const [title, setTitle] = useState("")
+  const [slug, setSlug] = useState("")
+  const [body, setBody] = useState("")
+  const [published, setPublished] = useState(false)
+  const [msg, setMsg] = useState("")
+  const sb = createClient()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-  }, [supabase]);
+    sb.auth.getSession().then(({ data }) => setSession(data.session))
+  }, [])
 
-  useEffect(() => {
-    if (session) {
-      supabase
-        .from("posts")
-        .select("id, title, slug, published, created_at")
-        .order("created_at", { ascending: false })
-        .then(({ data }) => {
-          if (data) setPosts(data);
-          setLoading(false);
-        });
-    }
-  }, [session, supabase]);
-
-  if (!session) {
-    return (
-      <main className="max-w-xl mx-auto py-20 px-4 text-center">
-        <h1 className="text-2xl font-bold mb-4">Admin — Not signed in</h1>
-        <p className="text-gray-400">Sign in via Supabase to access this panel.</p>
-      </main>
-    );
+  async function login(e) {
+    e.preventDefault()
+    const { error } = await sb.auth.signInWithPassword({ email, password })
+    if (error) setMsg(error.message)
+    else sb.auth.getSession().then(({ data }) => setSession(data.session))
   }
 
+  async function save(e) {
+    e.preventDefault()
+    const { error } = await sb.from("posts").insert({ title, slug, content: body, published, views: 0 })
+    if (error) setMsg(error.message)
+    else { setMsg("Post saved!"); setTitle(""); setSlug(""); setBody("") }
+  }
+
+  if (!session) return (
+    <div className="max-w-sm mx-auto mt-20 p-6">
+      <h1 className="text-2xl font-bold mb-4">Admin Login</h1>
+      <form onSubmit={login} className="space-y-3">
+        <input className="w-full border p-2 rounded" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+        <input type="password" className="w-full border p-2 rounded" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+        <button className="w-full bg-black text-white p-2 rounded">Login</button>
+      </form>
+      {msg && <p className="text-red-500 mt-2">{msg}</p>}
+    </div>
+  )
+
   return (
-    <main className="max-w-3xl mx-auto py-12 px-4">
-      <h1 className="text-3xl font-bold mb-8">Admin Panel</h1>
-      {loading ? (
-        <p className="text-gray-400">Loading posts…</p>
-      ) : (
-        <ul className="space-y-4">
-          {posts.map((post) => (
-            <li key={post.id} className="border border-gray-700 rounded p-4 flex justify-between items-center">
-              <div>
-                <p className="font-medium">{post.title}</p>
-                <p className="text-sm text-gray-400">{post.slug} — {post.published ? "Published" : "Draft"}</p>
-              </div>
-              <span className={`text-xs px-2 py-1 rounded ${post.published ? "bg-green-800 text-green-200" : "bg-yellow-800 text-yellow-200"}`}>
-                {post.published ? "Live" : "Draft"}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
-  );
+    <div className="max-w-2xl mx-auto mt-10 p-6">
+      <h1 className="text-2xl font-bold mb-4">New Post</h1>
+      <form onSubmit={save} className="space-y-3">
+        <input className="w-full border p-2 rounded" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
+        <input className="w-full border p-2 rounded" placeholder="slug-here" value={slug} onChange={e => setSlug(e.target.value)} />
+        <textarea className="w-full border p-2 rounded h-48" value={body} onChange={e => setBody(e.target.value)} />
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} />
+          Published
+        </label>
+        <button className="bg-black text-white px-4 py-2 rounded">Save Post</button>
+      </form>
+      {msg && <p className="text-green-600 mt-2">{msg}</p>}
+    </div>
+  )
 }
