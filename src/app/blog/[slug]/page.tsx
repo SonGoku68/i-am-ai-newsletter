@@ -5,7 +5,7 @@ export const revalidate = 60
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const supabase = await createClient()
+  const supabase = createClient()
   const { data: post } = await supabase
     .from("posts")
     .select("*")
@@ -15,7 +15,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   if (!post) notFound()
 
-  // Increment view count
   await supabase.rpc("increment_views", { post_id: post.id }).catch(() => {})
 
   return (
@@ -25,10 +24,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       )}
       <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
       {post.summary && <p className="text-gray-500 text-lg mb-6">{post.summary}</p>}
-      <p className="text-xs text-gray-400 mb-8">{new Date(post.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+      <p className="text-xs text-gray-400 mb-8">
+        {new Date(post.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+      </p>
       <article className="prose prose-gray max-w-none">
-        {post.content.split("
-").map((line: string, i: number) => (
+        {post.content.split("\n").map((line: string, i: number) => (
           <p key={i}>{line}</p>
         ))}
       </article>
