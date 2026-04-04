@@ -1,114 +1,88 @@
-import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
-import SubscribeForm from '@/components/SubscribeForm'
-
-export const revalidate = 60
+import { createClient } from '@/lib/supabase/server';
+import Link from 'next/link';
+import SubscribeForm from '@/components/SubscribeForm';
 
 export default async function HomePage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
-  const { data: posts } = await supabase
+  const { data: posts, error } = await supabase
     .from('posts')
-    .select('id, title, slug, excerpt, published_at, category')
-    .eq('published', true)
+    .select('id, title, slug, summary, published_at, category')
     .order('published_at', { ascending: false })
-    .limit(10)
+    .limit(20);
 
   return (
-    <main className="min-h-screen bg-gray-950 text-gray-100">
+    <main className="max-w-3xl mx-auto px-4 py-12">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900">
-        <div className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">I Am AI</h1>
-            <p className="text-sm text-gray-400 mt-1">Daily intelligence on artificial intelligence</p>
-          </div>
-          <Link
-            href="/admin"
-            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            Admin
-          </Link>
-        </div>
+      <header className="mb-12 text-center">
+        <h1 className="text-5xl font-extrabold text-gray-900 mb-4 tracking-tight">
+          I am AI
+        </h1>
+        <p className="text-xl text-gray-500 max-w-xl mx-auto">
+          Daily insights on artificial intelligence — research, analysis, and the stories shaping our future.
+        </p>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        {/* Hero */}
-        <section className="mb-12 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            AI news, explained daily
-          </h2>
-          <p className="text-gray-400 text-lg max-w-xl mx-auto mb-8">
-            Research, breakthroughs, and analysis — curated and written by AI, for curious humans.
-          </p>
-          <SubscribeForm />
-        </section>
+      {/* Subscribe */}
+      <section className="mb-14 bg-blue-50 border border-blue-100 rounded-2xl p-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Weekly Newsletter
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Get the top 5 AI stories of the week, curated by visits, delivered to your inbox every week.
+        </p>
+        <SubscribeForm />
+      </section>
 
-        {/* Posts */}
-        <section>
-          <h3 className="text-lg font-semibold text-gray-300 mb-6 border-b border-gray-800 pb-3">
-            Latest Posts
-          </h3>
-          {posts && posts.length > 0 ? (
-            <div className="space-y-6">
-              {posts.map((post) => (
-                <article
-                  key={post.id}
-                  className="border border-gray-800 rounded-lg p-6 hover:border-gray-600 transition-colors bg-gray-900"
+      {/* Posts */}
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900 mb-8">Latest Posts</h2>
+        {error && (
+          <p className="text-red-500 text-sm mb-4">Could not load posts. Please try again later.</p>
+        )}
+        {!error && (!posts || posts.length === 0) && (
+          <p className="text-gray-500">No posts yet. Check back soon!</p>
+        )}
+        <div className="space-y-8">
+          {posts?.map((post) => (
+            <article key={post.id} className="border-b border-gray-100 pb-8 last:border-0">
+              <div className="flex items-center gap-3 mb-2">
+                {post.category && (
+                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                    {post.category}
+                  </span>
+                )}
+                {post.published_at && (
+                  <time className="text-sm text-gray-400" dateTime={post.published_at}>
+                    {new Date(post.published_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </time>
+                )}
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2 leading-snug">
+                <Link
+                  href={`/blog/${post.slug}`}
+                  className="hover:text-blue-600 transition-colors"
                 >
-                  {post.category && (
-                    <span className="text-xs font-medium text-blue-400 uppercase tracking-wider">
-                      {post.category}
-                    </span>
-                  )}
-                  <h2 className="text-xl font-semibold text-white mt-2 mb-2">
-                    <Link
-                      href={`/blog/${post.slug}`}
-                      className="hover:text-blue-400 transition-colors"
-                    >
-                      {post.title}
-                    </Link>
-                  </h2>
-                  {post.excerpt && (
-                    <p className="text-gray-400 text-sm leading-relaxed mb-3">
-                      {post.excerpt}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <time className="text-xs text-gray-500">
-                      {post.published_at
-                        ? new Date(post.published_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })
-                        : ''}
-                    </time>
-                    <Link
-                      href={`/blog/${post.slug}`}
-                      className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                    >
-                      Read more →
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 text-gray-500">
-              <p className="text-lg">First posts coming soon.</p>
-              <p className="text-sm mt-2">Subscribe below to be notified.</p>
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-800 mt-16">
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-gray-500 text-sm">
-          <p>© {new Date().getFullYear()} I Am AI Newsletter. Powered by curiosity and artificial intelligence.</p>
+                  {post.title}
+                </Link>
+              </h3>
+              {post.summary && (
+                <p className="text-gray-600 leading-relaxed">{post.summary}</p>
+              )}
+              <Link
+                href={`/blog/${post.slug}`}
+                className="inline-block mt-3 text-sm font-medium text-blue-600 hover:underline"
+              >
+                Read more →
+              </Link>
+            </article>
+          ))}
         </div>
-      </footer>
+      </section>
     </main>
-  )
+  );
 }
