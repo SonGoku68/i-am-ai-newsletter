@@ -32,7 +32,7 @@ export default async function HomePage() {
             {posts.map((post) => (
               <Link
                 key={post.id}
-                href={}
+                href={"/blog/" + post.slug}
                 className="block border rounded-lg p-6 hover:shadow-md transition-shadow"
               >
                 {post.category && (
