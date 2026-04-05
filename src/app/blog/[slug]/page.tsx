@@ -1,65 +1,119 @@
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+import SubscribeForm from '@/components/SubscribeForm'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 
-export default async function BlogPost({ params }: { params: { slug: string } }) {
-  let post: any = null
+export const revalidate = 60
 
-  try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('slug', params.slug)
-      .single()
-    if (error || !data) return notFound()
-    post = data
-  } catch {
-    return notFound()
+interface Props {
+  params: Promise<{ slug: string }>
+}
+
+async function getPost(slug: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('slug', slug)
+    .eq('published', true)
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const post = await getPost(slug)
+  if (!post) return { title: 'Post not found' }
+  return {
+    title: post.title,
+    description: post.summary ?? undefined,
+    openGraph: { title: post.title, description: post.summary ?? undefined },
   }
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  })
+}
+
+export default async function BlogPostPage({ params }: Props) {
+  const { slug } = await params
+  const post = await getPost(slug)
+  if (!post) notFound()
 
   return (
-    <main className="min-h-screen bg-[#090C10]">
-      <div className="max-w-3xl mx-auto px-6 py-16">
-        {/* Back */}
-        <Link href="/" className="inline-flex items-center gap-2 font-mono text-xs text-[#7A8A9B] hover:text-[#00C2FF] transition-colors mb-12 tracking-wider uppercase">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          Back to feed
-        </Link>
+    <div className="flex flex-col min-h-dvh">
+      <Navbar />
 
-        {/* Meta */}
-        <div className="mb-8">
-          <time className="font-mono text-xs text-[#3D4E60] tracking-wider">
-            {new Date(post.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </time>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-[#E8EDF3] mt-3 mb-4 leading-tight">
-            {post.title}
-          </h1>
-          {post.excerpt && (
-            <p className="text-lg text-[#7A8A9B] leading-relaxed border-l-2 border-[#00C2FF] pl-4">
-              {post.excerpt}
-            </p>
+      <main className="flex-1">
+        {/* Article header */}
+        <header className="relative overflow-hidden border-b border-zinc-800/60">
+          <div className="absolute inset-0 bg-gradient-to-b from-brand-950/30 to-transparent pointer-events-none" />
+          <div className="container-content relative py-14 sm:py-20 max-w-3xl">
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 text-xs text-zinc-500 mb-6">
+              <Link href="/" className="hover:text-zinc-300 transition-colors">Home</Link>
+              <span>/</span>
+              <Link href="/blog" className="hover:text-zinc-300 transition-colors">Blog</Link>
+              <span>/</span>
+              <span className="text-zinc-400 truncate max-w-[160px]">{post.title}</span>
+            </div>
+
+            {/* Meta */}
+            <div className="flex flex-wrap items-center gap-2 mb-5">
+              {post.category && <span className="badge-brand">{post.category}</span>}
+              {post.read_time && (
+                <span className="badge-zinc">{post.read_time} min read</span>
+              )}
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-5 text-balance">
+              {post.title}
+            </h1>
+
+            {post.summary && (
+              <p className="text-zinc-400 text-lg leading-relaxed mb-6 max-w-2xl">
+                {post.summary}
+              </p>
+            )}
+
+            <time className="text-sm text-zinc-600">
+              {formatDate(post.created_at)}
+            </time>
+          </div>
+        </header>
+
+        {/* Article body */}
+        <article className="container-content max-w-3xl py-12">
+          {post.content ? (
+            <div
+              className="prose-dark"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
+          ) : (
+            <p className="text-zinc-500 italic">Content coming soon.</p>
           )}
+        </article>
+
+        {/* Back link */}
+        <div className="container-content max-w-3xl pb-8">
+          <Link href="/blog" className="btn-ghost text-sm">
+            ← Back to all posts
+          </Link>
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-[#1E2733] mb-10" />
+        {/* Newsletter CTA */}
+        <div className="container-content max-w-3xl pb-24">
+          <SubscribeForm />
+        </div>
+      </main>
 
-        {/* Body */}
-        <article
-          className="prose prose-invert prose-sm max-w-none
-            prose-headings:text-[#E8EDF3] prose-headings:font-bold
-            prose-p:text-[#7A8A9B] prose-p:leading-relaxed
-            prose-a:text-[#00C2FF] prose-a:no-underline hover:prose-a:underline
-            prose-code:text-[#00C2FF] prose-code:bg-[#1C2330] prose-code:px-1 prose-code:rounded
-            prose-pre:bg-[#0F1318] prose-pre:border prose-pre:border-[#1E2733]
-            prose-blockquote:border-l-[#00C2FF] prose-blockquote:text-[#7A8A9B]
-            prose-strong:text-[#E8EDF3]"
-          dangerouslySetInnerHTML={{ __html: post.content ?? '' }}
-        />
-      </div>
-    </main>
+      <Footer />
+    </div>
   )
 }

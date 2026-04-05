@@ -1,29 +1,30 @@
-import type { Config } from 'tailwindcss'
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
-  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
   theme: {
     extend: {
       colors: {
-        'bg-base':        '#090C10',
-        'bg-surface':     '#0F1318',
-        'bg-raised':      '#151A21',
-        'bg-subtle':      '#1C2330',
-        'border-dim':     '#1E2733',
-        'border-soft':    '#2A3543',
-        'text-primary':   '#E8EDF3',
-        'text-secondary': '#7A8A9B',
-        'text-muted':     '#3D4E60',
-        'accent':         '#00C2FF',
-        'accent-hot':     '#7B61FF',
+        brand: {
+          50:  '#f0f9ff',
+          100: '#e0f2fe',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          900: '#0c4a6e',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        sans: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
       },
     },
   },
   plugins: [],
-}
+};
 
-export default config
+export default config;

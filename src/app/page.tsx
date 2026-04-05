@@ -1,93 +1,101 @@
-import Link from 'next/link'
-import SubscribeForm from '@/components/SubscribeForm'
-import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+import SubscribeForm from '@/components/SubscribeForm';
 
-type Post = {
-  title: string
-  slug: string
-  excerpt: string
-  published_at: string
+export const revalidate = 60;
+
+interface Post {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  published_at: string;
+  visit_count: number;
 }
 
 export default async function HomePage() {
-  let posts: Post[] = []
+  const supabase = await createClient();
 
-  try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('posts')
-      .select('title, slug, excerpt, published_at')
-      .order('published_at', { ascending: false })
-    if (error) {
-      console.error('Posts error:', error.message)
-    } else {
-      posts = data ?? []
-    }
-  } catch (err: any) {
-    console.error('Supabase connection error:', err?.message ?? err)
+  const { data: posts, error } = await supabase
+    .from('posts')
+    .select('id, slug, title, summary, published_at, visit_count')
+    .order('published_at', { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.error('Failed to fetch posts:', error.message);
   }
 
+  const postList: Post[] = posts || [];
+
   return (
-    <main className="min-h-screen bg-[#090C10]">
-      {/* Hero */}
-      <section className="relative bg-grid overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#090C10]/60 to-[#090C10] pointer-events-none" />
-        <div className="relative max-w-5xl mx-auto px-6 py-28 text-center">
-          <div className="inline-block font-mono text-xs font-semibold tracking-widest uppercase text-[#00C2FF] bg-[#00C2FF]/[0.08] border border-[#00C2FF]/20 px-3 py-1 rounded mb-6">
-            Daily Intelligence Feed
+    <main className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">I Am AI</h1>
+            <p className="text-sm text-gray-500">Daily AI news &amp; research</p>
           </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-none text-gradient">
-            I am AI
-          </h1>
-          <p className="text-lg md:text-xl text-[#7A8A9B] max-w-2xl mx-auto mb-10 leading-relaxed">
-            Cutting-edge AI research, analysis, and the stories reshaping our world — delivered daily.
+          <nav className="flex gap-4 text-sm font-medium text-gray-600">
+            <Link href="/" className="hover:text-blue-600">Home</Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* Newsletter CTA */}
+      <section className="bg-blue-600 text-white">
+        <div className="max-w-4xl mx-auto px-4 py-10 text-center">
+          <h2 className="text-2xl font-bold mb-2">Stay ahead in AI</h2>
+          <p className="text-blue-100 mb-6">
+            Get the top 5 AI stories of the week — every week, straight to your inbox.
           </p>
-          <div id="subscribe">
+          <div className="flex justify-center">
             <SubscribeForm />
           </div>
         </div>
       </section>
 
-      {/* Posts Feed */}
-      <section className="max-w-5xl mx-auto px-6 py-16">
-        <div className="flex items-center gap-3 mb-10">
-          <span className="font-mono text-xs text-[#00C2FF] tracking-widest uppercase">Latest</span>
-          <div className="flex-1 h-px bg-[#1E2733]" />
-          <span className="font-mono text-xs text-[#3D4E60]">{posts.length} posts</span>
-        </div>
-
-        {posts.length === 0 ? (
-          <div className="text-center py-24 border border-[#1E2733] rounded-xl bg-[#0F1318]">
-            <span className="font-mono text-xs text-[#3D4E60] tracking-widest uppercase">// incoming transmission</span>
-            <p className="text-[#7A8A9B] mt-4">First posts coming soon.</p>
-          </div>
+      {/* Posts */}
+      <section className="max-w-4xl mx-auto px-4 py-10">
+        <h2 className="text-xl font-bold text-gray-800 mb-6">Latest Posts</h2>
+        {postList.length === 0 ? (
+          <p className="text-gray-500">No posts yet. Check back soon.</p>
         ) : (
-          <div className="grid gap-4">
-            {posts.map((post) => (
-              <article key={post.slug} className="group border border-[#1E2733] rounded-xl bg-[#0F1318] p-6 hover:border-[#2A3543] hover:bg-[#151A21] transition-all duration-200">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <time className="font-mono text-xs text-[#3D4E60] tracking-wider">
-                      {new Date(post.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </time>
-                    <Link href={`/blog/${post.slug}`}>
-                      <h2 className="text-lg font-semibold text-[#E8EDF3] mt-1 mb-2 group-hover:text-[#00C2FF] transition-colors leading-snug">
-                        {post.title}
-                      </h2>
-                    </Link>
-                    <p className="text-[#7A8A9B] text-sm leading-relaxed line-clamp-2">{post.excerpt}</p>
-                  </div>
-                  <Link href={`/blog/${post.slug}`} className="shrink-0 text-[#00C2FF] hover:text-[#E8EDF3] transition-colors mt-1">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                  </Link>
+          <div className="grid gap-6">
+            {postList.map((post) => (
+              <article
+                key={post.id}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+              >
+                <Link href={`/blog/${post.slug}`}>
+                  <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors mb-2">
+                    {post.title}
+                  </h3>
+                </Link>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3">{post.summary}</p>
+                <div className="flex items-center justify-between text-xs text-gray-400">
+                  <time dateTime={post.published_at}>
+                    {new Date(post.published_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </time>
+                  <span>{post.visit_count ?? 0} views</span>
                 </div>
               </article>
             ))}
           </div>
         )}
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 mt-10">
+        <div className="max-w-4xl mx-auto px-4 py-6 text-center text-sm text-gray-400">
+          © {new Date().getFullYear()} I Am AI Newsletter. All rights reserved.
+        </div>
+      </footer>
     </main>
-  )
+  );
 }
