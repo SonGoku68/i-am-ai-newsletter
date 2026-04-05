@@ -12,6 +12,8 @@ export default function SubscribeForm() {
     if (!email) return;
 
     setStatus('loading');
+    setMessage('');
+
     try {
       const res = await fetch('/api/subscribe', {
         method: 'POST',
@@ -23,11 +25,11 @@ export default function SubscribeForm() {
 
       if (res.ok) {
         setStatus('success');
-        setMessage(data.message || 'You are subscribed!');
+        setMessage(data.message ?? 'You are subscribed! Welcome aboard 🎉');
         setEmail('');
       } else {
         setStatus('error');
-        setMessage(data.error || 'Something went wrong. Please try again.');
+        setMessage(data.error ?? 'Something went wrong. Please try again.');
       }
     } catch {
       setStatus('error');
@@ -36,28 +38,35 @@ export default function SubscribeForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+    >
       <input
         type="email"
+        required
+        placeholder="your@email.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="your@email.com"
-        required
         disabled={status === 'loading'}
-        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+        className="flex-1 rounded-xl px-4 py-3 bg-gray-800 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
       />
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+        className="rounded-xl px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50 whitespace-nowrap"
       >
-        {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
+        {status === 'loading' ? 'Subscribing…' : 'Subscribe Free'}
       </button>
-      {status === 'success' && (
-        <p className="text-green-600 text-sm mt-2 w-full">{message}</p>
-      )}
-      {status === 'error' && (
-        <p className="text-red-600 text-sm mt-2 w-full">{message}</p>
+
+      {message && (
+        <p
+          className={`w-full text-sm mt-1 ${
+            status === 'success' ? 'text-green-400' : 'text-red-400'
+          }`}
+        >
+          {message}
+        </p>
       )}
     </form>
   );
