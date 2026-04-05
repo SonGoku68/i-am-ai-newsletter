@@ -1,21 +1,20 @@
-
-'use client';
-import Link from 'next/link';
+import Link from 'next/link'
 
 export default function Navbar() {
   return (
-    <nav className="bg-[#0D0D0D] text-[#F5F4F0] px-6 py-4 flex items-center justify-between sticky top-0 z-50 border-b border-[#1a1a1a]">
-      <Link href="/" className="font-bold text-lg tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-        I Am AI
-      </Link>
-      <div className="flex items-center gap-6">
-        <Link href="/" className="text-sm text-[#6B7280] hover:text-[#F5F4F0] transition-colors">
-          Home
+    <nav className="border-b border-[#1E2733] bg-[#090C10]/80 backdrop-blur-md sticky top-0 z-50">
+      <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="font-mono text-xs font-bold tracking-widest uppercase text-[#00C2FF]">I_AM_AI</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00C2FF] animate-pulse" />
         </Link>
-        <Link href="/#subscribe" className="bg-[#6366F1] text-white text-sm px-4 py-2 rounded-md hover:bg-indigo-500 transition-colors">
-          Subscribe
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/" className="text-sm text-[#7A8A9B] hover:text-[#E8EDF3] transition-colors">Feed</Link>
+          <Link href="/#subscribe" className="text-sm font-mono tracking-wider uppercase px-4 py-1.5 rounded border border-[#00C2FF] text-[#00C2FF] hover:bg-[#00C2FF]/10 transition-all text-xs">
+            Subscribe
+          </Link>
+        </div>
       </div>
     </nav>
-  );
+  )
 }
