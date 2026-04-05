@@ -33,7 +33,7 @@ export default async function HomePage() {
       <section className="relative bg-grid overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#090C10]/60 to-[#090C10] pointer-events-none" />
         <div className="relative max-w-5xl mx-auto px-6 py-28 text-center">
-          <div className="inline-block font-mono text-xs font-semibold tracking-widest uppercase text-[#00C2FF] bg-[#00C2FF]/8 border border-[#00C2FF]/20 px-3 py-1 rounded mb-6">
+          <div className="inline-block font-mono text-xs font-semibold tracking-widest uppercase text-[#00C2FF] bg-[#00C2FF]/[0.08] border border-[#00C2FF]/20 px-3 py-1 rounded mb-6">
             Daily Intelligence Feed
           </div>
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-none text-gradient">
